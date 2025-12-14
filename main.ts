@@ -1,134 +1,102 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin } from 'obsidian';
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+/**
+ * Plugin skeleton modified to:
+ * - Detect math elements rendered in the document
+ * - Inspect the original TeX source (if available) or the text content for occurrences
+ *   of the pattern: \<...>  (a backslash followed by <...>), detected by the regex /\\<[^>]+>/
+ * - If such a pair is present, keep/use the default renderer (KaTeX) output (no-op)
+ * - If such a pair is NOT present, run a dummy Typst-render function and replace the element
+ *
+ * NOTE:
+ * - Obsidian's exact DOM and attributes for math elements can vary by version. This example
+ *   tries several selectors and looks for a `data-tex` attribute (common when KaTeX preserves the
+ *   source). If your setup differs, adjust the selectors / attribute accessors accordingly.
+ */
 
 export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+    async onload() {
+        console.log('Loading typst/KaTeX switcher plugin (demo)...');
+        this.registerMarkdownPostProcessor((element: HTMLElement, ctx: any) => {
+            // Try a set of selectors that may represent rendered math elements.
+            // Adjust these selectors if your Obsidian version uses different classes.
+            const selectors = [
+                'div.math',        // block math common class
+                'div.math-block',  // alternate
+                'span.math',       // inline math common class
+                'span.inline-math',
+                'code[data-tex]',  // if KaTeX/Obsidian stores source in data-tex on a code element
+            ];
 
-	async onload() {
-		await this.loadSettings();
+            const mathElements = new Set<HTMLElement>();
+            for (const sel of selectors) {
+                element.querySelectorAll<HTMLElement>(sel).forEach(e => mathElements.add(e));
+            }
+            console.log(mathElements);
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+            // If nothing found by selectors, also scan for elements that include a KaTeX wrapper
+            // (kaTeX often produces elements with class 'katex' inside). This is a fallback.
+            if (mathElements.size === 0) {
+                element.querySelectorAll<HTMLElement>('.katex, .katex-display').forEach(k => {
+                    // climb up to a parent that likely represents the math container
+                    const parent = k.closest('div, span') as HTMLElement | null;
+                    if (parent) mathElements.add(parent);
+                });
+            }
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+            mathElements.forEach((mEl) => {
+                // Attempt to get the original TeX source. Obsidian sometimes stores it in data-tex.
+                const source =
+                    (mEl.getAttribute && (mEl.getAttribute('data-tex') ?? mEl.getAttribute('data-latex'))) ||
+                    mEl.getAttribute?.('data-tex') ||
+                    mEl.textContent ||
+                    '';
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, _view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+                // Detect \<!something>
+                const backslashAnglePairRegex = /\\<[^>]+>/;
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
+                if (backslashAnglePairRegex.test(source)) {
+                    // Found a \ <...> pair: use default renderer (KaTeX).
+                    // In most cases KaTeX has already rendered the element, so we leave it as-is.
+                    // If you'd want to forcibly re-run KaTeX or restore original KaTeX output,
+                    // you'd implement that here.
+                    return;
+                } else {
+                    // No \ <...> pair: use Typst renderer.
+                    // For this request we call a dummy function to simulate Typst rendering.
+                    const typstHtml = dummyTypstRender(source);
+                    // Replace the element contents with the dummy Typst output.
+                    // Keep an identifying class for styling/debugging.
+                    mEl.classList.add('typst-rendered-by-plugin');
+                    mEl.innerHTML = typstHtml;
+                }
+            });
+        });
+    }
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-	}
-
-	onunload() {
-
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+    onunload() {
+        console.log('Unloading typst/KaTeX switcher plugin (demo)...');
+    }
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
+/**
+ * Dummy Typst renderer (placeholder).
+ * Replace this with an actual Typst rendering pipeline when available.
+ */
+function dummyTypstRender(source: string): string {
+    // Simple HTML-escaped placeholder output so tests can see the replacement.
+    const escaped = escapeHtml(source);
+    return `<span style="color:var(--text-muted); font-style:italic;">[Typst placeholder render]</span>` +
+        `<span style="display:block; margin-top:0.2em; padding:0.2em 0.4em; border-radius:4px; background:var(--background-modifier-border);">` +
+        `${escaped}</span>`;
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
+/** Small helper to escape HTML to avoid XSS when injecting raw source into innerHTML */
+function escapeHtml(unsafe: string): string {
+    return unsafe
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
