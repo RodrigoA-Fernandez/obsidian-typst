@@ -1,0 +1,19 @@
+/* wrapper centrado y responsive */
+.typst-display {
+  display: block;
+  margin: 0.6em auto;
+  width: auto;         /* importante: no width:100% */
+  max-width: 720px;
+  box-sizing: border-box;
+  height: auto;
+  align-self: center;  /* ayuda si el padre es flex */
+}
+
+/* inline wrapper */
+.typst-inline {
+  display: inline-block;
+  vertical-align: middle;
+  width: auto;
+  max-width: 240px;
+}
+
