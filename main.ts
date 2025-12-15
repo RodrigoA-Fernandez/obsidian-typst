@@ -82,8 +82,10 @@ export default class Typst extends Plugin {
                     try {
                         const doc = parser.parseFromString(svgString, 'image/svg+xml');
                         if (doc && doc.documentElement && doc.documentElement.nodeName.toLowerCase() === 'svg') {
+                            doc.body.toggleClass('danger', true);
+                            doc.createEl('div', { text: "Este es el elemento creado." })
                             newNode = doc.documentElement;
-							const styleMode = isDisplay ? "typst-display": "typst-inline";
+                            const styleMode = isDisplay ? "typst-display" : "typst-inline";
                             (newNode as SVGElement).classList.add('typst-compact-svg');
                             (newNode as SVGElement).classList.add(styleMode);
                         }

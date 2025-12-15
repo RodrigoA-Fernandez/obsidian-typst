@@ -1164,6 +1164,18 @@ body {
 }
 
 /* default.css */
+.danger {
+  color: #FF0000;
+}
+.katex {
+  font-size: 1em !important;
+}
+.typst-inline {
+  display: inline-block;
+  vertical-align: middle;
+  width: auto;
+  max-width: 240px;
+}
 .typst-display {
   display: block;
   margin: 0.6em auto;
@@ -1173,11 +1185,9 @@ body {
   height: auto;
   align-self: center;
 }
-.typst-inline {
-  display: inline-block;
-  vertical-align: middle;
-  width: auto;
-  max-width: 240px;
+.typst-display-wrapper {
+  display: block;
+  text-align: center;
 }
 .typst-display svg,
 .typst-inline svg {
