@@ -55,13 +55,13 @@ export default class Typst extends Plugin {
             const id = `typst-pending-${Date.now()}-${typstPendingId++}`;
             placeholder.setAttribute('data-typst-pending', id);
             placeholder.className = 'typst-pending';
-            placeholder.textContent = '…';
+            placeholder.textContent = '...Renderizando...';
 
             // Lanzamos la tarea asíncrona que hará la compilación con Typst y reemplazará el placeholder
             (async () => {
+                const mathExpr = String(e).trim();
                 try {
                     // Normalize input text
-                    const mathExpr = String(e).trim();
 
                     const isDisplay = !!(r && r.display);
                     const padding = isDisplay ? " " : "";
@@ -73,65 +73,37 @@ export default class Typst extends Plugin {
 					 $${padding}${mathExpr}${padding}$ 
 					`;
 
-                    // Render and wait for svg string
+                    //Renderizar SVG y guardarlo como string
                     const svgString = await $typst.svg({ mainContent });
-                    console.log(mainContent);
 
-                    // Parse as SVG first
+                    //Intentamos parsear el SVG
                     let newNode: ChildNode | null = null;
-                    try {
-                        const doc = parser.parseFromString(svgString, 'image/svg+xml');
-                        if (doc && doc.documentElement && doc.documentElement.nodeName.toLowerCase() === 'svg') {
-                            doc.body.toggleClass('danger', true);
-                            doc.createEl('div', { text: "Este es el elemento creado." })
-                            newNode = doc.documentElement;
-                            const styleMode = isDisplay ? "typst-display" : "typst-inline";
-                            (newNode as SVGElement).classList.add('typst-compact-svg');
-                            (newNode as SVGElement).classList.add(styleMode);
-                        }
-                    } catch {
-                        // ignore and fallback
-                    }
-
-                    // Fallback to HTML parse if not valid SVG
-                    if (!newNode) {
-                        const doc = parser.parseFromString(svgString, 'text/html');
-                        newNode = doc.body.firstChild;
-                        if (newNode && newNode.nodeType === Node.ELEMENT_NODE) {
-                            (newNode as HTMLElement).classList.add('typst-compact-svg');
-                        }
-                    }
+                    // Fallback a HTML parse if not es válido
+                    const doc = parser.parseFromString(svgString, 'text/html');
+                    newNode = doc.body.firstChild;
 
                     if (newNode) {
+                        let parent: ParentNode;
                         if (placeholder.parentNode) {
-                            placeholder.parentNode.replaceChild(newNode, placeholder);
+                            parent = placeholder.parentNode;
                         } else {
-                            // If placeholder not attached anymore, find by data attr
+                            // Si el placeholder se ha borrado encontramos el elemento por id
                             const existing = document.querySelector(`[data-typst-pending="${id}"]`);
                             if (existing && existing.parentNode) {
+                                parent = existing.parentNode;
                                 existing.parentNode.replaceChild(newNode, existing);
+                            } else {
+                                throw Error("Math Element not found");
                             }
                         }
-                    } else {
-                        // If response invalid, show original input in red (no flashing big error)
-                        const errNode = document.createElement('span');
-                        errNode.textContent = mathExpr;
-                        errNode.className = 'typst-render-error';
-                        if (placeholder.parentNode) {
-                            placeholder.parentNode.replaceChild(errNode, placeholder);
-                        } else {
-                            const existing = document.querySelector(`[data-typst-pending="${id}"]`);
-                            if (existing && existing.parentNode) existing.parentNode.replaceChild(errNode, existing);
-                        }
-                        // trigger fade-in
-                        // use requestAnimationFrame to ensure the element is in the DOM
-                        requestAnimationFrame(() => errNode.classList.add('show'));
+
+                        const styleMode = isDisplay ? "typst-display" : "typst-inline";
+                        parent.removeChild(placeholder);
+                        let container = parent.createEl('div', { cls: styleMode });
+                        container.append(newNode);
                     }
                 } catch (err) {
-                    // In case of error, prefer to show original text in red (non-intrusive).
-                    // console.error('Typst render error:', err);
-
-                    // If configured, try fallback to LaTeX rendering synchronously
+                    //Si el código typst da error mostramos el texto en rojo
                     if (this.settings.fallbackToLatexOnError) {
                         try {
                             const latexNode = this._tex2chtml(e, r);
@@ -145,14 +117,11 @@ export default class Typst extends Plugin {
                                     return;
                                 }
                             }
-                        } catch {
-                            // if fallback fails, continue to show input in red
-                        }
+                        } catch { }
                     }
 
-                    const cleaned = String(e).trim();
                     const errNode = document.createElement('span');
-                    errNode.textContent = cleaned; // safe: textContent avoids HTML injection
+                    errNode.textContent = mathExpr;
                     errNode.className = 'typst-render-error';
                     if (placeholder.parentNode) {
                         placeholder.parentNode.replaceChild(errNode, placeholder);
@@ -160,11 +129,10 @@ export default class Typst extends Plugin {
                         const existing = document.querySelector(`[data-typst-pending="${id}"]`);
                         if (existing && existing.parentNode) existing.parentNode.replaceChild(errNode, existing);
                     }
-                    requestAnimationFrame(() => errNode.classList.add('show'));
+                    // console.error("[obsidian-typst] Error: ", err);
                 }
             })();
 
-            // Devolvemos el placeholder inmediatamente (API síncrona)
             return placeholder;
         };
 

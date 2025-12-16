@@ -1164,9 +1164,6 @@ body {
 }
 
 /* default.css */
-.danger {
-  color: #FF0000;
-}
 .katex {
   font-size: 1em !important;
 }
@@ -1184,20 +1181,14 @@ body {
   box-sizing: border-box;
   height: auto;
   align-self: center;
-}
-.typst-display-wrapper {
-  display: block;
   text-align: center;
+  overflow: scroll;
 }
 .typst-display svg,
 .typst-inline svg {
-  width: 100%;
-  height: auto;
-  display: block;
+  display: inline-block;
+  margin: auto;
 }
-.math.math-block .typst-display,
-.cm-embed-block .typst-display {
-  margin-left: auto;
-  margin-right: auto;
-  align-self: center;
+.typst-render-error {
+  color: #FF0000;
 }

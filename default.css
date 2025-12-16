@@ -1,8 +1,4 @@
 /* default.css (añádelo o actualízalo) */
-.danger {
-	color: #FF0000;
-}
-
 .katex { font-size: 1em !important; }
 
 .typst-inline {
@@ -14,30 +10,24 @@
 
 .typst-display {
   display: block;
-  margin: 0.6em auto;   /* centra horizontalmente si el ancho es menor que el padre */
-  width: auto;          /* importante: NO width:100% */
-  max-width: 720px;     /* ajusta a tu gusto */
+  margin: 0.6em auto;
+  width: auto;
+  max-width: 720px;
   box-sizing: border-box;
   height: auto;
-  align-self: center;   /* ayuda si el padre es flex */
-}
-
-.typst-display-wrapper {
-  display: block;
-  text-align: center;   /* útil si el contenido no es SVG */
+  align-self: center;
+  text-align: center;      /* <-- añade esto */
+  overflow: scroll;
 }
 
 .typst-display svg,
 .typst-inline svg {
-  width: 100%;   /* el SVG rellenará el contenedor */
-  height: auto;
-  display: block;
+  display: inline-block;
+  margin: auto;
 }
 
-/* refuerzo para el contexto de Obsidian */
-.math.math-block .typst-display,
-.cm-embed-block .typst-display {
-  margin-left: auto;
-  margin-right: auto;
-  align-self: center;
+.typst-render-error {
+  color: #FF0000;
 }
+
+

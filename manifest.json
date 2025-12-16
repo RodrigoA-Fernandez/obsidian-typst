@@ -1,9 +1,9 @@
 {
 	"id": "obsidian-typst",
 	"name": "Obsidian Typst",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Render typst inside Obsidian Math Blocks",
+	"description": "Render typst inside Obsidian Math Blocks.",
 	"author": "Rodrigo Alejandro Fernandez",
 	"authorUrl": "",
 	"fundingUrl": "",
