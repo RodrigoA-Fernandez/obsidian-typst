@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS: Partial<TypstSettings> = {
     fallbackToLatexOnError: false,
 };
 
+
 export default class Typst extends Plugin {
     settings: TypstSettings;
     _tex2chtml: any;
@@ -87,7 +88,6 @@ export default class Typst extends Plugin {
                             const existing = document.querySelector(`[data-typst-pending="${id}"]`);
                             if (existing && existing.parentNode) {
                                 parent = existing.parentNode;
-                                existing.parentNode.replaceChild(newNode, existing);
                             } else {
                                 throw Error("Math Element not found");
                             }
@@ -101,32 +101,28 @@ export default class Typst extends Plugin {
                         container.append(newNode);
                     }
                 } catch (err) {
-                    //Si el código typst da error mostramos el texto en rojo
-                    if (this.settings.fallbackToLatexOnError) {
-                        try {
-                            const latexNode = this._tex2chtml(e, r);
-                            if (placeholder.parentNode) {
-                                placeholder.parentNode.replaceChild(latexNode, placeholder);
-                                return;
-                            } else {
-                                const existing = document.querySelector(`[data-typst-pending="${id}"]`);
-                                if (existing && existing.parentNode) {
-                                    existing.parentNode.replaceChild(latexNode, existing);
-                                    return;
-                                }
-                            }
-                        } catch { }
+
+                    let parent: ParentNode;
+                    if (placeholder.parentNode) {
+                        parent = placeholder.parentNode;
+                    } else {
+                        // Si el placeholder se ha borrado encontramos el elemento por id
+                        const existing = document.querySelector(`[data-typst-pending="${id}"]`);
+                        if (existing && existing.parentNode) {
+                            parent = existing.parentNode;
+                        } else {
+                            throw Error("Math Element not found");
+                        }
                     }
 
-                    const errNode = document.createElement('p');
-                    errNode.textContent = mathExpr;
-                    errNode.className = 'typst-render-error';
-                    if (placeholder.parentNode) {
-                        placeholder.parentNode.replaceChild(errNode, placeholder);
-                    } else {
-                        const existing = document.querySelector(`[data-typst-pending="${id}"]`);
-                        if (existing && existing.parentNode) existing.parentNode.replaceChild(errNode, existing);
-                    }
+                    const isDisplay = !!(r && r.display);
+                    const styleMode = "typst-render-error";
+                    const parentMode = isDisplay ? "typst-math-display" : "typst-math-inline";
+                    const errNode = parent.createEl('p', { cls: styleMode, text: mathExpr });
+
+                    parent.removeChild(placeholder);
+                    errNode.parentElement?.toggleClass(parentMode, true);
+
                     console.error("[obsidian-typst] Error: ", err);
                 }
             })();
@@ -152,18 +148,15 @@ export default class Typst extends Plugin {
     }
 
     private async initTypstOnce(): Promise<void> {
+
         if (this.typstReady) return this.typstReady;
         this.typstReady = (async () => {
-            $typst.setCompilerInitOptions({
-                beforeBuild: [],
-                getModule: () =>
-                    'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm',
-            });
-            $typst.setRendererInitOptions({
-                beforeBuild: [],
-                getModule: () =>
-                    'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-renderer/pkg/typst_ts_renderer_bg.wasm',
-            });
+            const compilerWasm = `${this.app.vault.configDir}/plugins/obsidian-typst/typst_ts_web_compiler_bg.wasm`;
+            const rendererWasm = `${this.app.vault.configDir}/plugins/obsidian-typst/typst_ts_renderer_bg.wasm`;
+
+            $typst.setCompilerInitOptions({ getModule: () => compilerWasm });
+            $typst.setRendererInitOptions({ getModule: () => rendererWasm });
+
 
             // 2) Intenta usar el helper que añade el package registry por defecto en navegador
             //    (equivalente a $typst.use(TypstSnippet.fetchPackageRegistry()))
@@ -172,13 +165,13 @@ export default class Typst extends Plugin {
                 // esto añadirá MemoryAccessModel + FetchPackageRegistry internamente
                 $typst.use(TypstSnippet.fetchPackageRegistry());
             } catch (e) {
-                // console.warn('[obsidian-typst] No se pudo invocar fetchPackageRegistry automáticamente', e);
+                console.warn('[obsidian-typst] No se pudo invocar fetchPackageRegistry automáticamente', e);
             }
 
             // 3) Forzar una compilación dummy para disparar la preparación interna
             try {
                 await $typst.svg({ mainContent: '$x$' });
-                // console.log('[obsidian-typst] Typst inicializado correctamente');
+                console.log('[obsidian-typst] Typst inicializado correctamente');
             } catch (err) {
                 // algunos errores en la compilación dummy son normales; lo importante es que prepareUse() corrió
                 console.warn('[obsidian-typst] Inicialización de Typst (dummy) completada con advertencia:', err);

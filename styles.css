@@ -1171,7 +1171,6 @@ body {
   display: inline-block;
   vertical-align: bottom;
   width: auto;
-  max-width: 240px;
 }
 .typst-display {
   display: block;
@@ -1191,6 +1190,9 @@ body {
 }
 .typst-render-error {
   color: #FF0000;
+  margin-top: 0;
+  margin-bottom: 0;
+  text-align: center;
 }
 .typst-math-inline {
   display: inline-block;
