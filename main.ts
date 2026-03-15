@@ -151,11 +151,24 @@ export default class Typst extends Plugin {
 
         if (this.typstReady) return this.typstReady;
         this.typstReady = (async () => {
-            const compilerWasm = `${this.app.vault.configDir}/plugins/obsidian-typst/typst_ts_web_compiler_bg.wasm`;
-            const rendererWasm = `${this.app.vault.configDir}/plugins/obsidian-typst/typst_ts_renderer_bg.wasm`;
+            const pluginRelPath = `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
+            const compilerWasmPath = `${pluginRelPath}/typst_ts_web_compiler_bg.wasm`;
+            const rendererWasmPath = `${pluginRelPath}/typst_ts_renderer_bg.wasm`;
 
-            $typst.setCompilerInitOptions({ getModule: () => compilerWasm });
-            $typst.setRendererInitOptions({ getModule: () => rendererWasm });
+            console.log(`[obsidian-typst] Loading WASM from plugin dir: ${pluginRelPath}`);
+
+            let compilerWasmBuffer: ArrayBuffer;
+            let rendererWasmBuffer: ArrayBuffer;
+            try {
+                compilerWasmBuffer = await this.app.vault.adapter.readBinary(compilerWasmPath);
+                rendererWasmBuffer = await this.app.vault.adapter.readBinary(rendererWasmPath);
+            } catch (err) {
+                console.error('[obsidian-typst] Failed to read WASM files. Ensure typst_ts_web_compiler_bg.wasm and typst_ts_renderer_bg.wasm are present in the plugin directory.', err);
+                throw err;
+            }
+
+            $typst.setCompilerInitOptions({ getModule: () => compilerWasmBuffer });
+            $typst.setRendererInitOptions({ getModule: () => rendererWasmBuffer });
 
 
             // 2) Intenta usar el helper que añade el package registry por defecto en navegador
