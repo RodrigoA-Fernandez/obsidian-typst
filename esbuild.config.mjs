@@ -1,29 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
-import fs from 'fs';
-
-const WASM_FILES = [
-    {
-        src: 'node_modules/@myriaddreamin/typst-ts-web-compiler/pkg/typst_ts_web_compiler_bg.wasm',
-        dest: 'typst_ts_web_compiler_bg.wasm',
-    },
-    {
-        src: 'node_modules/@myriaddreamin/typst-ts-renderer/pkg/typst_ts_renderer_bg.wasm',
-        dest: 'typst_ts_renderer_bg.wasm',
-    },
-];
-
-function copyWasmFiles() {
-    for (const { src, dest } of WASM_FILES) {
-        if (fs.existsSync(src)) {
-            fs.copyFileSync(src, dest);
-            console.log(`[obsidian-typst] Copied ${src} → ${dest}`);
-        } else {
-            console.warn(`[obsidian-typst] WASM source not found: ${src}`);
-        }
-    }
-}
+import fs from "fs";
 
 const banner =
     `/*
@@ -59,7 +37,6 @@ const context = await esbuild.context({
         '.woff': 'dataurl',
         '.woff2': 'dataurl',
         '.ttf': 'dataurl',
-        '.wasm': 'binary',
     },
     format: "cjs",
     target: "es2018",
@@ -71,10 +48,8 @@ const context = await esbuild.context({
 
 if (prod) {
     await context.rebuild();
-    copyWasmFiles();
     fs.renameSync('main.css', 'styles.css');
     process.exit(0);
 } else {
-    copyWasmFiles();
     await context.watch();
 }

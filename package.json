@@ -22,10 +22,6 @@
 		"typescript": "^4.7.4"
 	},
 	"dependencies": {
-		"@myriaddreamin/typst-ts-renderer": "^0.6.1-rc5",
-		"@myriaddreamin/typst-ts-web-compiler": "^0.6.1-rc5",
-		"@myriaddreamin/typst.react": "^0.6.1-rc5",
-		"@myriaddreamin/typst.ts": "^0.6.1-rc5",
-		"katex": "^0.16.27"
+		"typlet": "^0.2.0"
 	}
 }
