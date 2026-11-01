@@ -1,4 +1,12 @@
-/* default.css (añádelo o actualízalo) */
+/* Keep inline delimiters inside the surrounding text line box. */
+.typlet {
+  line-height: 1.35;
+}
+
+.typlet .typlet-html {
+  line-height: 1.35;
+}
+
 .typst-render-error {
   color: #FF0000;
 }

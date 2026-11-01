@@ -1,7 +1,7 @@
 import { App, MarkdownView, Plugin, PluginSettingTab, Setting, loadMathJax } from 'obsidian';
 
-import 'default.css';
 import 'typlet/fonts/typlet.css';
+import 'default.css';
 import { renderToString } from 'typlet';
 
 interface TypstSettings {
@@ -115,4 +115,3 @@ function hasLatexCommand(expr: string) {
     const regex = /\\\S/;
     return regex.test(expr);
 }
-
